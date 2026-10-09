@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Comprobar DEV_TOKEN
-        shell: pwsh
+        shell: powershell
         env:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
         run: |
