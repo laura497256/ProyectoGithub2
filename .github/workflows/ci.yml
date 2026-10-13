@@ -15,14 +15,14 @@ permissions:
 jobs:
   update-readme:
     name: Registrar feature en README
-      runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
-      - name: Añadir feature al README
+      - name: Registrar feature en README
         if: github.event_name == 'pull_request'
         env:
           FEATURE_BRANCH: ${{ github.head_ref }}
@@ -36,7 +36,7 @@ jobs:
             git commit -m "docs: registrar feature"
             git push origin "HEAD:$FEATURE_BRANCH"
           else
-            echo "La feature ya está registrada."
+            echo "La feature ya esta registrada."
           fi
 
   validate-dev-token:
