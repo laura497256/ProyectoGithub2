@@ -1,4 +1,3 @@
-
 name: CD - Produccion
 
 on:
@@ -11,33 +10,47 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   update-version:
     name: Incrementar version de la aplicacion
-     update-version:
     runs-on: ubuntu-latest
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
       - name: Incrementar version y anadir fecha
+        if: github.event_name == 'pull_request'
         run: |
           CURRENT=$(grep -E '^AppVersion-[0-9]+$' README.md | tail -n 1 | sed 's/AppVersion-//')
           if [ -z "$CURRENT" ]; then
-            NEXT=1
-          else
-            NEXT=$((CURRENT + 1))
+            CURRENT=0
           fi
+          NEXT=$((CURRENT + 1))
 
           sed -i '/^AppVersion-[0-9][0-9]*$/d' README.md
           printf '\nAppVersion-%s\nFecha: %s\n' "$NEXT" "$(date -u '+%Y-%m-%d %H:%M UTC')" >> README.md
 
+          BRANCH="cd/actualizar-version"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
           git add README.md
           git commit -m "chore: actualizar version a AppVersion-$NEXT"
-          git push
+          git push --force origin "$BRANCH"
+
+      - name: Crear Pull Request de version
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base main \
+            --head cd/actualizar-version \
+            --title "chore: actualizar version" \
+            --body "Actualizacion automatica de version y fecha." \
+            || echo "La Pull Request ya existe o no se pudo crear."
 
   validate-prod-token:
     name: Validar token de produccion
