@@ -1,0 +1,34 @@
+﻿name: CI - Desarrollo
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+jobs:
+  validate-dev-token:
+    name: Validar token de desarrollo
+    runs-on: self-hosted
+    steps:
+      - name: Comparar secreto y variable local
+        shell: powershell
+        env:
+          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
+        run: |
+          if ([string]::IsNullOrEmpty($env:DEV_TOKEN)) {
+            Write-Error "Falta el secreto DEV_TOKEN."
+            exit 1
+          }
+          if ([string]::IsNullOrEmpty($env:LOCAL_DEV_TOKEN)) {
+            Write-Error "Falta LOCAL_DEV_TOKEN en el runner."
+            exit 1
+          }
+          if ($env:DEV_TOKEN -ceq $env:LOCAL_DEV_TOKEN) {
+            Write-Host "Token de desarrollo validado correctamente."
+          } else {
+            Write-Error "Los tokens no coinciden."
+            exit 1
+          }
