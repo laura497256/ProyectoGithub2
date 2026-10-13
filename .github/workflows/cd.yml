@@ -15,7 +15,7 @@ permissions:
 jobs:
   update-version:
     name: Incrementar version de la aplicacion
-    if: github.event_name != 'pull_request'
+     update-version:
     runs-on: ubuntu-latest
     steps:
       - name: Descargar repositorio
