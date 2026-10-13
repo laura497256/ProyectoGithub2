@@ -1,0 +1,65 @@
+
+name: CD - Produccion
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-version:
+    name: Incrementar version de la aplicacion
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Incrementar version y anadir fecha
+        run: |
+          CURRENT=$(grep -E '^AppVersion-[0-9]+$' README.md | tail -n 1 | sed 's/AppVersion-//')
+          if [ -z "$CURRENT" ]; then
+            NEXT=1
+          else
+            NEXT=$((CURRENT + 1))
+          fi
+
+          sed -i '/^AppVersion-[0-9][0-9]*$/d' README.md
+          printf '\nAppVersion-%s\nFecha: %s\n' "$NEXT" "$(date -u '+%Y-%m-%d %H:%M UTC')" >> README.md
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "chore: actualizar version a AppVersion-$NEXT"
+          git push
+
+  validate-prod-token:
+    name: Validar token de produccion
+    runs-on: self-hosted
+    needs: update-version
+    steps:
+      - name: Comparar secreto y variable local
+        shell: powershell
+        env:
+          PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
+        run: |
+          if ([string]::IsNullOrEmpty($env:PROD_TOKEN)) {
+            Write-Error "Falta PROD_TOKEN."
+            exit 1
+          }
+          if ([string]::IsNullOrEmpty($env:LOCAL_PROD_TOKEN)) {
+            Write-Error "Falta LOCAL_PROD_TOKEN."
+            exit 1
+          }
+          if ($env:PROD_TOKEN -ceq $env:LOCAL_PROD_TOKEN) {
+            Write-Host "Token de produccion validado."
+          } else {
+            Write-Error "Los tokens no coinciden."
+            exit 1
+          }
