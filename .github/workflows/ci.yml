@@ -1,4 +1,5 @@
-﻿name: CI - Desarrollo
+
+name: CI - Desarrollo
 
 on:
   pull_request:
@@ -8,10 +9,40 @@ on:
     branches: [develop]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
+  update-readme:
+    name: Registrar feature en README
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Añadir feature al README
+        env:
+          FEATURE_BRANCH: ${{ github.head_ref }}
+        run: |
+          LINE="Añadida feature: $FEATURE_BRANCH"
+          if ! grep -Fqx "$LINE" README.md; then
+            printf '\n%s\n' "$LINE" >> README.md
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "docs: registrar feature"
+            git push origin "HEAD:$FEATURE_BRANCH"
+          else
+            echo "La feature ya está registrada."
+          fi
+
   validate-dev-token:
     name: Validar token de desarrollo
     runs-on: self-hosted
+    needs: update-readme
     steps:
       - name: Comparar secreto y variable local
         shell: powershell
@@ -19,15 +50,15 @@ jobs:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
         run: |
           if ([string]::IsNullOrEmpty($env:DEV_TOKEN)) {
-            Write-Error "Falta el secreto DEV_TOKEN."
+            Write-Error "Falta DEV_TOKEN."
             exit 1
           }
           if ([string]::IsNullOrEmpty($env:LOCAL_DEV_TOKEN)) {
-            Write-Error "Falta LOCAL_DEV_TOKEN en el runner."
+            Write-Error "Falta LOCAL_DEV_TOKEN."
             exit 1
           }
           if ($env:DEV_TOKEN -ceq $env:LOCAL_DEV_TOKEN) {
-            Write-Host "Token de desarrollo validado correctamente."
+            Write-Host "Token de desarrollo validado."
           } else {
             Write-Error "Los tokens no coinciden."
             exit 1
