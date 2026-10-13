@@ -15,8 +15,7 @@ permissions:
 jobs:
   update-readme:
     name: Registrar feature en README
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+      runs-on: ubuntu-latest
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
@@ -24,6 +23,7 @@ jobs:
           ref: ${{ github.head_ref }}
 
       - name: Añadir feature al README
+        if: github.event_name == 'pull_request'
         env:
           FEATURE_BRANCH: ${{ github.head_ref }}
         run: |
