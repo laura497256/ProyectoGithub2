@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Incrementar version y anadir fecha
         if: github.event_name == 'pull_request'
@@ -37,7 +39,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B "$BRANCH"
           git add README.md
-          git commit -m "chore: actualizar version a AppVersion-$NEXT"
+          git commit -m "chore: actualizar version a AppVersion-$NEXT" || echo "No hay cambios de version."
           git push --force origin "$BRANCH"
 
       - name: Crear Pull Request de version
